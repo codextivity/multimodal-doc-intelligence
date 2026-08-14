@@ -253,7 +253,7 @@ def extract_mixed_pdf(
     print(f"  Extracted {len(chunks)} total chunks")
     return chunks
 
-def extract_scanned_pdf(def extract_scanned_pdf(
+def extract_scanned_pdf(
     file_path: str,
     file_hash: str,
     original_filename: str = None
