@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+chroma_db/
+data/
+test_images/
+test_docs/
+.venv/
+venv/
+multimodal_env/
+*.egg-info/
+.DS_Store
+check_vectorstore.py
+reingest_image.py
