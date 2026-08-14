@@ -3,6 +3,25 @@
 # Routes each document and page to the correct extractor
 # and produces unified Document chunks for the vector store.
 
+# app/core/multimodal_ingestion.py
+# Make system-dependent imports optional
+# so the app starts even without Tesseract/Poppler installed
+
+try:
+    import pytesseract
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
+    print("Warning: pytesseract not available — OCR disabled")
+
+try:
+    from pdf2image import convert_from_path
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    PDF2IMAGE_AVAILABLE = False
+    print("Warning: pdf2image not available — scanned PDF support disabled")
+    
+
 import hashlib
 import tempfile
 import os
@@ -234,32 +253,53 @@ def extract_mixed_pdf(
     print(f"  Extracted {len(chunks)} total chunks")
     return chunks
 
-def extract_scanned_pdf(
+def extract_scanned_pdf(def extract_scanned_pdf(
     file_path: str,
     file_hash: str,
     original_filename: str = None
 ) -> list[Document]:
-    """Extracts content from a scanned PDF using VLM."""
+    """
+    Extracts content from scanned PDF using VLM.
+    Falls back gracefully if pdf2image is not available.
+    """
     print(f"  Processing scanned PDF with VLM...")
     doc = fitz.open(file_path)
     chunks = []
 
     for page_num in range(len(doc)):
         print(f"  Processing page {page_num + 1}/{len(doc)}...")
-        page_image = pdf_page_to_image(file_path, page_num)
-        tmp_path = save_image_to_temp(page_image)
+
         try:
-            description = describe_image_for_rag(tmp_path)
-            chunks.append(make_chunk(
-                content=description,
-                source=file_path,
-                page=page_num,
-                content_type="scanned",
-                file_hash=file_hash,
-                original_filename=original_filename  # ← pass through
-            ))
-        finally:
-            os.unlink(tmp_path)
+            page_image = pdf_page_to_image(file_path, page_num)
+            tmp_path = save_image_to_temp(page_image)
+
+            try:
+                description = describe_image_for_rag(tmp_path)
+                chunks.append(make_chunk(
+                    content=description,
+                    source=file_path,
+                    page=page_num,
+                    content_type="scanned",
+                    file_hash=file_hash,
+                    original_filename=original_filename
+                ))
+            finally:
+                os.unlink(tmp_path)
+
+        except Exception as e:
+            # If image rendering fails, fall back to text extraction
+            print(f"  Warning: Could not render page {page_num} as image: {e}")
+            page = doc[page_num]
+            text = page.get_text().strip()
+            if text:
+                chunks.append(make_chunk(
+                    content=text,
+                    source=file_path,
+                    page=page_num,
+                    content_type="text",
+                    file_hash=file_hash,
+                    original_filename=original_filename
+                ))
 
     doc.close()
     return chunks
