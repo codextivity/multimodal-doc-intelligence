@@ -2,7 +2,7 @@
 
 AI research assistant that understands text, charts, tables, and scanned documents. Upload any document type and ask questions across all content modalities.
 
-**Live Demo:** https://your-render-url.onrender.com/docs **GitHub:** https://github.com/codextivity/multimodal-doc-intelligence
+**Live Demo:** [https://multimodal-doc-intelligence.onrender.com/](https://multimodal-doc-intelligence.onrender.com)docs
 
 ---
 
